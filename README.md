@@ -14,7 +14,7 @@ Also you may clone/download this repository and put it to `stable-diffusion-webu
 ## Usage:
 You will see a section titled `Anti Burn (average smoothing of last steps images)` on txt2img and img2img tabs, which looks like this:
 
-![](https://klimaleksus2.ucoz.ru/sd/anti-burn_section.png)
+![](https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gui.png)
 
 Here is a copy of internal help documentation inside:
 <details><summary>More info about Anti Burn</summary>
