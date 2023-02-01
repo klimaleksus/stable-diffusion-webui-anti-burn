@@ -1,3 +1,5 @@
+### Discussion: https://github.com/AUTOMATIC1111/stable-diffusion-webui/discussions/7464
+
 # anti-burn
 
 This is Extension for [AUTOMATIC1111/stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) for smoothing generated images by skipping a few very last steps and averaging together some images before them.
