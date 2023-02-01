@@ -48,7 +48,7 @@ class AntiBurnExtension(scripts.Script):
                 with gr.Row():
                     gr_skip = gr.Slider(minimum=0,maximum=24,step=1,label='Skip this many very last steps: ',value=0,elem_id=elem+'skip')
                 with gr.Row():
-                    gr_debug = gr.Checkbox(label='Debug Anti Burn (output checked pattern 2*2 with averaged 2+3 cells overlay)',value=False,elem_id=elem+'debug')
+                    gr_debug = gr.Checkbox(label='Debug Anti Burn (output checked pattern 2×2 with averaged 2,3 cells overlay)',value=False,elem_id=elem+'debug')
                     gr_brute = gr.Checkbox(label='Brute-force mode (create Count×Skip separate images) ',value=False,elem_id=elem+'brute')
                 with gr.Accordion('More info about Anti Burn',open=False,elem_id=elem+'help'):
                     gr.Markdown('''
