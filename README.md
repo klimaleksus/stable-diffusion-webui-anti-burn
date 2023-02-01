@@ -106,3 +106,7 @@ Just skip 1, but on 8 actual steps (instead of 32 to show the effect) with sampl
 Debug-mode demonstration: average all 32 steps, sampler `DPM fast`, notice blurred diagonal cells:
 
 [![](https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery_8_1.jpg)]( https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery_8_1.png)
+
+Since all samplers use different strategies for generation schedule, some are more appropriate to average heavily, while others will quickly become too blurry!
+
+### EOF
