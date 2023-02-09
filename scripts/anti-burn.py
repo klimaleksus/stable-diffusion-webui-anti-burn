@@ -125,13 +125,11 @@ The more _generation Steps_ you have, the less AntiBurn effect you will get.
         else:
             self.latents = None
 
-        def my_create_sampler(*k,**kw):
-            orig = getattr(my_create_sampler,'__anti_burn_wrapper')
-            res = orig(*k,**kw)
+        def hook_sampler(res):
             if self.block<1:
-                return res
+                return
             length = gr_skip+gr_count
-            
+
             def wrapped_grab(tensor):
                 if self.block<2:
                     return
@@ -191,10 +189,17 @@ The more _generation Steps_ you have, the less AntiBurn effect you will get.
                 setattr(res,'p_sample_ddim_hook',wrapped_ddim)
             else:
                 print('AntiBurn: unknown sampler?')
+
+        def my_create_sampler(*k,**kw):
+            orig = getattr(my_create_sampler,'__anti_burn_wrapper')
+            res = orig(*k,**kw)
+            hook_sampler(res)
             return res
         
         sd_samplers.create_sampler = my_create_sampler
         setattr(my_create_sampler,'__anti_burn_wrapper',old)
+        if hasattr(p,'sampler') and p.sampler is not None:
+            hook_sampler(p.sampler)
 
     def postprocess_batch(self,p,gr_enable,gr_debug,gr_count,gr_skip,gr_brute,gr_store,images,batch_number,**kw):
         self.block = 0
