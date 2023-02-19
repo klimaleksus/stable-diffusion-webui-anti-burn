@@ -89,8 +89,8 @@ Average 16 steps (that's too much), sampler: `DDIM`
 
 Average 5 steps, skipping 3 steps using highres-fix at 0.7 denoising (with Lanczos and no [conditional mask fixes](https://github.com/klimaleksus/stable-diffusion-webui-conditioning-highres-fix)), sampler: `DPM adaptive` (it did 60 lowres steps + 42 highres steps)
 
-[![](https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_3_1.jpg?)]( https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_3_1.png)
-[![](https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_3_2.jpg?)]( https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_3_2.png)
+[![](https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_3_1.jpg?2)]( https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_3_1.png)
+[![](https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_3_2.jpg?2)]( https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_3_2.png)
 
 ### Model: `protogenV22OfficialR_22`
 
@@ -101,8 +101,8 @@ Average 8 and skip 2 vs. average 12 skip 4, sampler: `DPM++ 2M Karras`
 
 Average 6 skipping 1, but with highres-fix at 0.5 denoising, sampler: `DPM++ SDE Karras` with 32 lowres steps and 12 highres steps (the WebUI setting _"With img2img, do exactly the amount of steps the slider specifies"_ was on):
 
-[![](https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_5_1.jpg?)]( https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_5_1.png)
-[![](https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_5_2.jpg?)]( https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_5_2.png)
+[![](https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_5_1.jpg?2)]( https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_5_1.png)
+[![](https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_5_2.jpg?2)]( https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_5_2.png)
 
 ### Model: `dreamshaper252_252SafetensorFix`
 
@@ -124,13 +124,13 @@ Debug-mode demonstration: average all 32 steps, sampler `DPM fast`, notice blurr
 
 Using Stop to affect the first pass of highres-fix: 0.6 denoising with Latent upscaler, sampler `Euler`, 24 lowres steps and 12 highres steps. No averaging but stop at 16:
 
-[![](https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_9_1.jpg?)]( https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_9_1.png?)
-[![](https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_9_2.jpg?)]( https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_9_2.png?)
+[![](https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_9_1.jpg?2)]( https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_9_1.png)
+[![](https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_9_2.jpg?2)]( https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_9_2.png)
 
 Corresponding before-highres-fix versions:
 
-[![](https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_9_3.jpg?)]( https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_9_3.png)
-[![](https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_9_4.jpg?)]( https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_9_4.png)
+[![](https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_9_3.jpg)]( https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_9_3.png)
+[![](https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_9_4.jpg)]( https://klimaleksus2.ucoz.ru/sd/anti-burn/anti-burn_gallery-fix_9_4.png)
 
 Using Stop to make a draft preview for generation by aborting at 16 steps, sampler `DPM++ 2S a`:
 
