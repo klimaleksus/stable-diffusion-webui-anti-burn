@@ -21,7 +21,7 @@ import numpy as np
 import gradio as gr
 from PIL import Image
 from modules.shared import opts
-from modules import scripts, script_callbacks, processing, devices, sd_samplers
+from modules import scripts, script_callbacks, processing, devices, sd_samplers, sd_samplers_common
 from modules import images as Images
 
 class AntiBurnExtension(scripts.Script):
@@ -41,15 +41,18 @@ class AntiBurnExtension(scripts.Script):
         with gr.Row(elem_id=elem+'row'):
             with gr.Accordion('Anti Burn (average smoothing of last steps images)',open=False,elem_id=elem+'accordion'):
                 with gr.Row():
-                    gr_enable = gr.Checkbox(label='Enable Anti Burn (and everything)',value=False,elem_id=elem+'enable')
-                    gr_store = gr.Checkbox(label='Store all steps of inference also (slow!)',value=False,elem_id=elem+'store')
+                    gr_enable = gr.Checkbox(label='Enable Anti Burn (and everything)',value=False,elem_id=elem+'enable',interactive=True)
+                    gr_store = gr.Checkbox(label='Store all steps of inference also (slow!)',value=False,elem_id=elem+'store',interactive=False)
+                    gr_bug = gr.Checkbox(label='Revert to buggy half-steps (not recommended)',value=False,elem_id=elem+'bug',interactive=False)
                 with gr.Row():
-                    gr_count = gr.Slider(minimum=1,maximum=64,step=1,label='Count of final steps to average together:',value=3,elem_id=elem+'count')
+                    gr_count = gr.Slider(minimum=1,maximum=64,step=1,label='Count of final steps to average together:',value=3,elem_id=elem+'count',interactive=False)
                 with gr.Row():
-                    gr_skip = gr.Slider(minimum=0,maximum=24,step=1,label='Skip this many very last steps: ',value=0,elem_id=elem+'skip')
+                    gr_skip = gr.Slider(minimum=0,maximum=24,step=1,label='Skip this many very last steps: ',value=0,elem_id=elem+'skip',interactive=False)
                 with gr.Row():
-                    gr_debug = gr.Checkbox(label='Debug Anti Burn (output checked pattern 2×2 with averaged 2,3 cells overlay)',value=False,elem_id=elem+'debug')
-                    gr_brute = gr.Checkbox(label='Brute-force mode (create Count×Skip separate images) ',value=False,elem_id=elem+'brute')
+                    gr_stop = gr.Slider(minimum=0,maximum=80,step=1,label='Stop first pass of highres.fix after this step number (0 to disable)',value=0,elem_id=elem+'stop',interactive=False)
+                with gr.Row():
+                    gr_debug = gr.Checkbox(label='Debug Anti Burn (output checked pattern 2×2 with averaged 2,3 cells overlay)',value=False,elem_id=elem+'debug',interactive=False)
+                    gr_brute = gr.Checkbox(label='Brute-force mode (create Count×Skip separate images) ',value=False,elem_id=elem+'brute',interactive=False)
                 with gr.Accordion('More info about Anti Burn',open=False,elem_id=elem+'help'):
                     gr.Markdown('''
 Sometimes samplers produce burned-out images on last step, especially on overtrained models at low number of steps.  
@@ -60,19 +63,25 @@ By **averaging several last images**, you can get much smoother and accurate sof
 
 This extension can do both: drop a few last images and merge together some of the rest.
 
-Unless the first checkbox (`Enable Anti Burn`) is checked, this extension will be disabled.  
+Unless the first checkbox (`Enable Anti Burn`) is checked, this extension will be disabled (and its controls are grayed-out).  
 Otherwise, it intercepts internal sampling loop call to grab latent results of each step and store a queue of them in RAM until the end of the batch. Then, those samples will be VAE-rendered and averaged together, replacing the final result for the rest of processing.
 
-To help you select the right values for skip and count average, you can use `Brute-force mode`: then this extension will loop through all possible combinations in chosen limits (taking into account actual number of available samples) and render them separated, into a subfolder inside your /txt2img-images/ (or what you have set) directory.  
+To help you select the right values for skip and count average, you can use `Brute-force mode`: this extension will loop through all possible combinations in chosen limits (taking into account actual number of available samples) and render them separated, into a subfolder inside your /txt2img-images/ (or what you have set) directory.
 
-If you want to actually see all of intermediate steps images, you can check `Store`-mode: then this extension will render and save latents just as sampler produces them, so it is very slow (but accurate, since it is not dependent on "Live preview" settings). To see just a few last steps, you should rather use Brute mode with "Count=0" but high Skip, it will be much faster, but you won't get samples from the first pass of highres-fix this way.  
+If you want to actually see all of intermediate steps images, you can check `Store`-mode: then this extension will render and save latents just as sampler produces them, so it is very slow (but accurate, since it is not dependent on "Live preview" settings). To see just a few last steps, you should rather use Brute mode with Count=0 but high Skip, it will be much faster, but you won't get samples from the first pass of highres-fix this way.
 
-The `Debug`-mode will make this extension replace only a half of image with averaged version: it will redraw just regions of top-right and bottom-left corner. This might help you to understand, whether the averaging is really working, and simplifies comparing of different sources (for example, checking: is the image in Brute and the corresponding unaffected copy in Store are actually rendered properly in normal operation with the same Count and Skip values?)  
+Third slider `Stop` can be used to abort the sampling process after the specified number of steps, counting from the start. This can help to drop some steps of the first pass of highres-fix, because it is not possible otherwise (since Count and Skip are effective only for the second pass if highres.fix was enabled); but you'll have to calculate your desired last step index manually.  
+Also Stop might help you to make draft generations without highres-fix if you set your total steps high, but use Anti Burn to stop early; this way your result will be more stable (comparing to full-step version) than if you had asked for less steps without stopping.
+
+_Note: earlier, there was a bug with latent grabbing for samplers that invoke the model twice per step (Heun, DPM2/a, DPM++ 2Sa, DPM++ SDE / Karras). For them, Anti Burn averaged half-steps instead of proper steps, giving less noticeable result. If you need to replicate that behavior, set the `Revert` checkbox._  
+_Also, for adaptive (DPM fast and DPM adaptive) and compvis samples (DDIM and PMLS), the final image is slightly different than what was stored from last model call. Now the proper image is processed as extra step for those samplers (Revert disables this too) and used in averaging._
+
+The `Debug`-mode will make this extension replace only a half of image with averaged version: it will redraw just regions of top-right and bottom-left corner. This might help you to understand, whether the averaging is really working, and simplifies comparing of different sources (for example, checking: is the image in Brute and the corresponding unaffected copy in Store are actually rendered properly in normal operation with the same Count and Skip values?)
 
 Filename pattern for Brute:  
 `AntiBurn_<start_timestamp>_Brute_<batch_number>_<image_number>-Skip=<now_skipped>-Average=<now_averaged>.png`  
 Filename pattern for Store:  
-`AntiBurn_<start_timestamp>_Store_<batch_number>_<image_number>-Phase=<highres_pass>-Step=<current_step>.png`
+`AntiBurn_<start_timestamp>_Store_<batch_number>_<image_number>[-Pass=<highres_pass>]-Step=<current_step>.png`
 
 - This extension prints useful lines in console output and also stores `AntiBurn:` section to Generate info, but it doesn’t automatically read those parameters back.  
 - When there are less total steps than selected Skip, then an original image is returned instead.  
@@ -80,7 +89,8 @@ Filename pattern for Store:
 - When Count=1, no averaging is performed, so use can use it when you need just Skip. Since all modes (Store/Debug/Brute/Count/Skip) can be used together simultaneously, you can set Count=1 and Skip=0 if you want only checked Store to be in effect.  
 - Be careful when using xformers: sometimes your GPU will create different images in a row, even with very same settings! So you won't be able to correctly replicate an image of some previous step, which might mislead you when you start comparing things.  
 - Math for averaging: take float pixel colors by three channels for all needed samples; find a median (most common/mean value) for each pixel color between samples; then average all samples with equal-weight addition and division on count; finally mix together that median and average, scale to 0-255 and store as integers.  
-- You cannot set Skip or Count just for the first pass of highres.fix pipeline. Thus, if you use latent upscale, you're out of luck already; and otherwise you'll have to perform first lowres phase manually, if you really have a reason to do so.
+- You cannot set Skip or Count just for the first pass of highres.fix pipeline (since internal array of stored latents must be cleared between passes). But now you may use Stop slider to set step number after which you want to abort the lowres pass and continue to second pass.
+- When using Stop, console output may show one step less than requested, because aborting makes it to skip over updating progress bar.
 
 **TL;DR**
 
@@ -89,9 +99,11 @@ If your image is burned, try to increase `Skip`, about to 1-2, but set Count to 
 If you want really smooth result, set both Skip and Count to something **higher**.  
 The more _generation Steps_ you have, the less AntiBurn effect you will get.
                     ''')
-        return [gr_enable,gr_debug,gr_count,gr_skip,gr_brute,gr_store]
+        outs = [gr_debug,gr_count,gr_skip,gr_brute,gr_store,gr_stop,gr_bug]
+        gr_enable.change(fn=lambda value:[gr.update(interactive=value) for _ in outs],inputs=[gr_enable],outputs=outs)
+        return [gr_enable,gr_debug,gr_count,gr_skip,gr_brute,gr_store,gr_stop,gr_bug]
 
-    def process(self,p,gr_enable,gr_debug,gr_count,gr_skip,gr_brute,gr_store):
+    def process(self,p,gr_enable,gr_debug,gr_count,gr_skip,gr_brute,gr_store,gr_stop,gr_bug):
         if not gr_enable:
             return
         self.block = 0
@@ -105,7 +117,7 @@ The more _generation Steps_ you have, the less AntiBurn effect you will get.
             if orig is not None:
                 sd_samplers.create_sampler = orig
 
-    def process_batch(self,p,gr_enable,gr_debug,gr_count,gr_skip,gr_brute,gr_store,batch_number,prompts,seeds,subseeds,**kw):
+    def process_batch(self,p,gr_enable,gr_debug,gr_count,gr_skip,gr_brute,gr_store,gr_stop,gr_bug,batch_number,prompts,seeds,subseeds,**kw):
         old = sd_samplers.create_sampler
         if hasattr(old,'__anti_burn_wrapper'):
             orig = getattr(old,'__anti_burn_wrapper')
@@ -116,9 +128,12 @@ The more _generation Steps_ you have, the less AntiBurn effect you will get.
                     return
         if not gr_enable:
             return;
+        self.enable_hr = hasattr(p,'enable_hr') and p.enable_hr
+        self.bug = gr_bug
         self.block = 1
         self.steps = 0
         self.phase = 0
+        self.stop = False
         self.batch = batch_number+1
         if gr_skip>0 or gr_count>1 or gr_brute or not gr_store:
             self.latents = []
@@ -129,6 +144,7 @@ The more _generation Steps_ you have, the less AntiBurn effect you will get.
             if self.block<1:
                 return
             length = gr_skip+gr_count
+            self.hard = gr_stop
 
             def wrapped_grab(tensor):
                 if self.block<2:
@@ -149,9 +165,16 @@ The more _generation Steps_ you have, the less AntiBurn effect you will get.
                 if gr_store:
                     batch = [(torch.clamp((processing.decode_first_stage(p.sd_model,torch.stack([batch.to(dtype=devices.dtype_vae,device=self.device)]))[0].to(device='cpu',dtype=torch.float32)+1.0)/2.0,min=0.0,max=1.0)).numpy() for batch in tensor]
                     batch = (np.moveaxis(batch,1,3)*255.0).astype(np.uint8)
-                    p.extra_generation_params['AntiBurn'] = 'Store;Phase={};Step={}'.format(self.phase,self.steps)
+                    ph = 'Phase' if self.bug else 'Pass'
+                    if self.enable_hr or self.phase>1 or self.bug:
+                        gen = 'Store;{}={};Step={};'.format(ph,self.phase,self.steps)
+                        text = '-{}={}-Step={}'.format(ph,self.phase,self.steps)
+                    else:
+                        gen = 'Store;Step={}'.format(self.steps)
+                        text = '-Step={}'.format(self.steps)
+                    p.extra_generation_params['AntiBurn'] = gen
                     iteration = self.batch-1 if self.batch>0 else 0
-                    text = '-Phase={}-Step={}'.format(self.phase,self.steps)
+                    
                     save_to_dirs = opts.save_to_dirs
                     opts.save_to_dirs = False
                     i = 0
@@ -169,24 +192,61 @@ The more _generation Steps_ you have, the less AntiBurn effect you will get.
             def wrapped_cfg(*k,**kw):
                 res = old_forward(*k,**kw)
                 wrapped_grab(res)
+                if self.block>=2 and self.phase==1 and self.hard!=0 and self.steps>=self.hard:
+                    self.hard = 0
+                    self.stop = True
+                    raise sd_samplers_common.InterruptedException()
                 return res
             def wrapped_ddim(*k,**kw):
                 res = old_forward(*k,**kw)
                 wrapped_grab(res[1])
+                if self.block>=2 and self.phase==1 and self.hard!=0 and self.steps>=self.hard:
+                    self.hard = 0
+                    self.stop = True
+                    raise sd_samplers_common.InterruptedException()
                 return res
-            
+            def wrapped_callback(d,*k,**kw):
+                if (d is not None) and ('denoised' in d):
+                    res = d['denoised']
+                    wrapped_grab(res)
+                r = old_callback(d,*k,**kw)
+                if self.block>=2 and self.phase==1 and self.hard!=0 and self.steps>=self.hard:
+                    self.hard = 0
+                    self.stop = True
+                    raise sd_samplers_common.InterruptedException()
+                return r
+            def wrapped_launch(steps,func,*k,**kw):
+                def wrap():
+                    res = func()
+                    wrapped_grab(res)
+                    return res
+                return old_launch(steps,wrap,*k,**kw)
             old_forward = None
+            old_callback = None
             self.phase += 1
             self.steps = 0
             if self.latents is not None:
                 self.latents.clear()
             self.block = 2
             if hasattr(res,'model_wrap_cfg'):
-                old_forward = res.model_wrap_cfg.forward
-                setattr(res.model_wrap_cfg,'forward',wrapped_cfg)
+                if self.bug:
+                    old_forward = res.model_wrap_cfg.forward
+                    setattr(res.model_wrap_cfg,'forward',wrapped_cfg)
+                else:
+                    old_callback = res.callback_state
+                    setattr(res,'callback_state',wrapped_callback)
+                    samp = ''
+                    if hasattr(res,'funcname'):
+                        samp = res.funcname
+                    if (samp=='') or (samp=='sample_dpm_fast') or (samp=='sample_dpm_adaptive'):
+                        old_launch = res.launch_sampling
+                        setattr(res,'launch_sampling',wrapped_launch)
             elif hasattr(res,'p_sample_ddim_hook'):
                 old_forward = res.p_sample_ddim_hook
                 setattr(res,'p_sample_ddim_hook',wrapped_ddim)
+                if not self.bug:
+                    old_launch = res.launch_sampling
+                    setattr(res,'launch_sampling',wrapped_launch)
             else:
                 print('AntiBurn: unknown sampler?')
 
@@ -201,10 +261,14 @@ The more _generation Steps_ you have, the less AntiBurn effect you will get.
         if hasattr(p,'sampler') and p.sampler is not None:
             hook_sampler(p.sampler)
 
-    def postprocess_batch(self,p,gr_enable,gr_debug,gr_count,gr_skip,gr_brute,gr_store,images,batch_number,**kw):
+    def postprocess_batch(self,p,gr_enable,gr_debug,gr_count,gr_skip,gr_brute,gr_store,gr_stop,gr_bug,images,batch_number,**kw):
         self.block = 0
         if not gr_enable or self.latents is None:
             return
+        info = ''
+        if self.stop:
+            info = 'Stop='+str(gr_stop)+';'+('Buggy;' if gr_bug else '')
+            p.extra_generation_params['AntiBurn'] = info
         if gr_skip!=0 and not gr_brute:
             latents = self.latents[:-gr_skip]
         else:
@@ -222,23 +286,35 @@ The more _generation Steps_ you have, the less AntiBurn effect you will get.
                         need.append((skip,j+1))
             total = len(need)
             if total==0:
-                print('AntiBurn: brute - nothing to do')
+                if self.stop:
+                    print('AntiBurn: '+info)
+                else:
+                    print('AntiBurn: brute - nothing to do')
                 return
             over = False
             average = count-gr_skip
         else:
             average = count
             if average==0:
-                print('AntiBurn: nothing to do')
+                if self.stop:
+                    print('AntiBurn: '+info)
+                else:
+                    print('AntiBurn: nothing to do')
                 return
             over = True
             total = 1
             need = [(gr_skip,average)]
         if average>0:
-            info = 'Count='+str(gr_count)+';'+('Skip='+str(gr_skip)+';' if gr_skip>0 else '')+('Debug;' if gr_debug else '')+('Average='+str(average)+';' if average!=gr_count else '')
+            if gr_count==1 and gr_skip==0:
+                if self.stop:
+                    print('AntiBurn: '+info)
+                    return
+                if gr_store:
+                    return
+            info += 'Count='+str(gr_count)+';'+('Skip='+str(gr_skip)+';' if gr_skip>0 else '')+('Debug;' if gr_debug else '')+('Average='+str(average)+';' if average!=gr_count else '')+('Buggy;' if gr_bug else '')
             print('AntiBurn: '+info)
         else:
-            print('AntiBurn: main task empty')
+            print('AntiBurn: main task empty'+(', '+info if info!='' else ''))
         arrs = []
         for latent in latents:
             batches = []
@@ -275,7 +351,7 @@ The more _generation Steps_ you have, the less AntiBurn effect you will get.
                 del med
             if gr_brute:
                 batch = (np.moveaxis(tgt,1,3)*255.0).astype(np.uint8)
-                p.extra_generation_params['AntiBurn'] = 'Brute;Skip={};Average={}'.format(skip,have)
+                p.extra_generation_params['AntiBurn'] = ('Stop='+str(gr_stop)+';' if self.stop else '')+'Brute;Skip={};Average={}'.format(skip,have)+('Buggy;' if gr_bug else '')
                 iteration = self.batch-1 if self.batch>0 else 0
                 text = '-Skip={}-Average={}'.format(skip,have)
                 save_to_dirs = opts.save_to_dirs
@@ -313,5 +389,9 @@ def AntiBurnExtension_unloaded():
         if orig is not None:
             sd_samplers.create_sampler = orig
 script_callbacks.on_script_unloaded(AntiBurnExtension_unloaded)
+
+#def AntiBurnExtension_infotext_pasted(infotext,result):
+#    return # https://github.com/AUTOMATIC1111/stable-diffusion-webui/discussions/7907
+#script_callbacks.on_infotext_pasted(AntiBurnExtension_infotext_pasted)
 
 #EOF
