@@ -140,9 +140,10 @@ The more _generation Steps_ you have, the less AntiBurn effect you will get.
         else:
             self.latents = None
 
-        def hook_sampler(res):
-            if self.block<1:
+        def hook_sampler(sampler):
+            if self.block<1 or hasattr(sampler,'__anti_burn_hooked'):
                 return
+            setattr(sampler,'__anti_burn_hooked',True)
             length = gr_skip+gr_count
             self.hard = gr_stop
 
@@ -228,25 +229,25 @@ The more _generation Steps_ you have, the less AntiBurn effect you will get.
             if self.latents is not None:
                 self.latents.clear()
             self.block = 2
-            if hasattr(res,'model_wrap_cfg'):
+            if hasattr(sampler,'model_wrap_cfg'):
                 if self.bug:
-                    old_forward = res.model_wrap_cfg.forward
-                    setattr(res.model_wrap_cfg,'forward',wrapped_cfg)
+                    old_forward = sampler.model_wrap_cfg.forward
+                    setattr(sampler.model_wrap_cfg,'forward',wrapped_cfg)
                 else:
-                    old_callback = res.callback_state
-                    setattr(res,'callback_state',wrapped_callback)
+                    old_callback = sampler.callback_state
+                    setattr(sampler,'callback_state',wrapped_callback)
                     samp = ''
-                    if hasattr(res,'funcname'):
-                        samp = res.funcname
+                    if hasattr(sampler,'funcname'):
+                        samp = sampler.funcname
                     if (samp=='') or (samp=='sample_dpm_fast') or (samp=='sample_dpm_adaptive'):
-                        old_launch = res.launch_sampling
-                        setattr(res,'launch_sampling',wrapped_launch)
-            elif hasattr(res,'p_sample_ddim_hook'):
-                old_forward = res.p_sample_ddim_hook
-                setattr(res,'p_sample_ddim_hook',wrapped_ddim)
+                        old_launch = sampler.launch_sampling
+                        setattr(sampler,'launch_sampling',wrapped_launch)
+            elif hasattr(sampler,'p_sample_ddim_hook'):
+                old_forward = sampler.p_sample_ddim_hook
+                setattr(sampler,'p_sample_ddim_hook',wrapped_ddim)
                 if not self.bug:
-                    old_launch = res.launch_sampling
-                    setattr(res,'launch_sampling',wrapped_launch)
+                    old_launch = sampler.launch_sampling
+                    setattr(sampler,'launch_sampling',wrapped_launch)
             else:
                 print('AntiBurn: unknown sampler?')
 
