@@ -10,8 +10,8 @@ Also it can be used to save all intermediate steps as images.
 
 ## Installation:
 
-This extension is included into the official index! Just use `Available → Load from` in WebUI Extensions tab.  
-Or copy the link to this repository into `Install from URL`:
+This extension is included into the official index! Just use `Available → Load from` in WebUI Extensions tab, and seek for `anti-burn`  
+Or copy the link to this repository into `URL for extension's git repository` on `Install from URL` subtab there:
 ```
 https://github.com/klimaleksus/stable-diffusion-webui-anti-burn
 ```
